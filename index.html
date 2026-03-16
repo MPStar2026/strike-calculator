@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Strike Calc" />
+  <title>Strike Calculator</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { background: #080f0a; font-family: 'Courier New', Courier, monospace; color: #e2f5e8; min-height: 100vh; }
+    body { display: flex; flex-direction: column; align-items: center; padding: 24px 16px; }
+
+    h1 { font-size: 26px; font-weight: 900; letter-spacing: 0.06em; color: #4ade80; text-shadow: 0 0 30px rgba(74,222,128,0.2); }
+    .subtitle { font-size: 9px; color: #2d5c3d; letter-spacing: 0.2em; margin-top: 4px; }
+
+    .pips { display: flex; justify-content: center; gap: 6px; margin-top: 12px; }
+    .pip { width: 24px; height: 3px; border-radius: 2px; background: #1e3d28; transition: background 0.3s; }
+    .pip.on { background: #4ade80; }
+
+    .screen { width: 100%; max-width: 440px; margin-top: 20px; }
+    .screen.hidden { display: none; }
+
+    .lbl { font-size: 10px; color: #5a9b72; text-transform: uppercase; letter-spacing: 0.15em; margin-bottom: 8px; }
+    .section { margin-bottom: 20px; }
+
+    /* Depth buttons */
+    .depth-row { display: flex; gap: 8px; }
+    .depth-btn { flex: 1; padding: 10px 8px; font-size: 15px; font-weight: 700; font-family: 'Courier New', monospace; border-radius: 6px; cursor: pointer; transition: all 0.15s; text-align: center; border: 1.5px solid #1e3d28; background: #0e1f14; color: #7bb990; }
+    .depth-btn:hover { border-color: #4ade80; color: #4ade80; background: #102018; }
+    .depth-btn.sel-red   { background: #2a0a0a; border-color: #ef4444; color: #ef4444; }
+    .depth-btn.sel-orange{ background: #2a1200; border-color: #f97316; color: #f97316; }
+    .depth-btn.sel-green { background: #132b1c; border-color: #4ade80; color: #4ade80; }
+    .depth-btn.sel-blue  { background: #0a1a2a; border-color: #60a5fa; color: #60a5fa; }
+
+    .warning { font-size: 9px; color: #ef4444; letter-spacing: 0.1em; text-transform: uppercase; margin-top: 6px; text-align: center; min-height: 14px; }
+
+    /* ROI grid */
+    .roi-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .roi-btn { padding: 9px 8px; font-size: 14px; font-weight: 700; font-family: 'Courier New', monospace; border-radius: 6px; cursor: pointer; transition: all 0.15s; text-align: center; border: 1.5px solid #1e3d28; background: #0e1f14; color: #7bb990; }
+    .roi-btn:hover { border-color: #4ade80; color: #4ade80; background: #102018; }
+    .roi-btn .sub { font-size: 9px; font-weight: 400; margin-top: 2px; color: #3d6b4f; }
+    .roi-btn.sel { background: #132b1c; border-color: #4ade80; color: #4ade80; }
+    .roi-btn.sel .sub { color: #86efac; }
+
+    /* Buttons */
+    .go { background: #4ade80; color: #050e08; border: none; border-radius: 7px; padding: 11px 28px; font-family: 'Courier New', monospace; font-size: 13px; font-weight: 900; letter-spacing: 0.08em; cursor: pointer; transition: all 0.15s; text-transform: uppercase; width: 100%; }
+    .go:hover { background: #86efac; }
+    .go:active { transform: translateY(1px); }
+    .go:disabled { background: #1e3d28; color: #3d6b4f; cursor: not-allowed; }
+
+    /* Chips */
+    .chips { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 16px; align-items: center; }
+    .chip { background: #0e1f14; border: 1px solid #1e3d28; border-radius: 20px; padding: 3px 10px; font-size: 10px; color: #5a9b72; letter-spacing: 0.06em; font-family: 'Courier New', monospace; }
+    .chip-edit { background: transparent; border: 1px dashed #1e3d28; color: #3d6b4f; cursor: pointer; border-radius: 20px; padding: 3px 10px; font-size: 10px; font-family: 'Courier New', monospace; }
+
+    /* Price input */
+    .input-row { display: flex; gap: 8px; }
+    .input-wrap { position: relative; flex: 1; }
+    .dollar { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #4ade80; font-size: 16px; font-weight: 700; pointer-events: none; }
+    input[type="number"] { background: #0e1f14; border: 1.5px solid #1e3d28; color: #4ade80; border-radius: 6px; padding: 9px 12px 9px 26px; width: 100%; font-family: 'Courier New', monospace; font-size: 17px; font-weight: 700; outline: none; transition: border-color 0.15s; -moz-appearance: textfield; }
+    input[type="number"]:focus { border-color: #4ade80; }
+    input::-webkit-outer-spin-button, input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+    input::placeholder { color: #2d5c3d; font-size: 13px; }
+    .calc-btn { background: #4ade80; color: #050e08; border: none; border-radius: 7px; padding: 0 18px; font-family: 'Courier New', monospace; font-size: 13px; font-weight: 900; cursor: pointer; text-transform: uppercase; flex-shrink: 0; }
+    .err { color: #f87171; font-size: 10px; margin-top: 6px; }
+
+    /* Results */
+    .results { background: #0c1a10; border: 1.5px solid #1e3d28; border-radius: 10px; padding: 16px 20px; margin-top: 4px; }
+    .row { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid #1a3a2a; }
+    .row:last-of-type { border-bottom: none; }
+    .row-lbl { color: #5a9b72; font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; }
+    .row-val { font-weight: 700; font-size: 14px; color: #e2f5e8; }
+    .row-val.green { color: #4ade80; font-size: 17px; }
+    .row-val.yellow { color: #fbbf24; font-size: 17px; }
+    .new-btn { background: #132b1c; color: #4ade80; border: 1px solid #2a5c38; border-radius: 7px; padding: 10px; font-family: 'Courier New', monospace; font-size: 12px; font-weight: 900; cursor: pointer; width: 100%; margin-top: 14px; text-transform: uppercase; }
+  </style>
+</head>
+<body>
+
+<div style="text-align:center">
+  <h1>STRIKE CALCULATOR</h1>
+  <div class="subtitle">CASH-SECURED PUTS</div>
+  <div class="pips">
+    <div class="pip on" id="pip1"></div>
+    <div class="pip" id="pip2"></div>
+  </div>
+</div>
+
+<!-- Screen 1 -->
+<div class="screen" id="screen1">
+
+  <div class="section">
+    <div class="lbl">Depth Level</div>
+    <div class="depth-row">
+      <button class="depth-btn" data-depth="5"  data-color="red"    onclick="selectDepth(this)">5%</button>
+      <button class="depth-btn" data-depth="7"  data-color="orange" onclick="selectDepth(this)">7%</button>
+      <button class="depth-btn" data-depth="10" data-color="green"  onclick="selectDepth(this)">10%</button>
+      <button class="depth-btn" data-depth="12" data-color="blue"   onclick="selectDepth(this)">12%</button>
+    </div>
+    <div class="warning" id="depthWarning"></div>
+  </div>
+
+  <div class="section">
+    <div class="lbl">ROI Level</div>
+    <div class="roi-grid">
+      <button class="roi-btn" data-roi="10"   data-prem="0.125" onclick="selectRoi(this)">10%<div class="sub">0.125% min premium</div></button>
+      <button class="roi-btn" data-roi="12.5" data-prem="0.25"  onclick="selectRoi(this)">12.5%<div class="sub">0.25% min premium</div></button>
+      <button class="roi-btn" data-roi="25"   data-prem="0.5"   onclick="selectRoi(this)">25%<div class="sub">0.5% min premium</div></button>
+      <button class="roi-btn" data-roi="50"   data-prem="1.0"   onclick="selectRoi(this)">50%<div class="sub">1.0% min premium</div></button>
+    </div>
+  </div>
+
+  <button class="go" id="nextBtn" disabled onclick="goToScreen2()">Next →</button>
+</div>
+
+<!-- Screen 2 -->
+<div class="screen hidden" id="screen2">
+
+  <div class="chips">
+    <span class="chip" id="chipDepth">Depth: —</span>
+    <span class="chip" id="chipRoi">ROI: —</span>
+    <span class="chip" id="chipMin">Min: —</span>
+    <button class="chip-edit" onclick="goToScreen1()">← Edit</button>
+  </div>
+
+  <div class="section">
+    <div class="lbl">Current Stock Price</div>
+    <div class="input-row">
+      <div class="input-wrap">
+        <span class="dollar">$</span>
+        <input type="number" id="priceInput" placeholder="0.00" min="0" step="0.01"
+          oninput="clearResult()" onkeydown="if(event.key==='Enter') calculate()" />
+      </div>
+      <button class="calc-btn" onclick="calculate()">Calc</button>
+    </div>
+    <div class="err" id="errMsg"></div>
+  </div>
+
+  <div class="results hidden" id="results">
+    <div class="row"><span class="row-lbl">Current Price</span><span class="row-val" id="rPrice"></span></div>
+    <div class="row"><span class="row-lbl" id="rStrikeLbl">Strike</span><span class="row-val green" id="rStrike"></span></div>
+    <div class="row"><span class="row-lbl">Min Premium/Share</span><span class="row-val yellow" id="rShare"></span></div>
+    <div class="row"><span class="row-lbl">Min Premium/Contract</span><span class="row-val yellow" id="rContract"></span></div>
+    <button class="new-btn" onclick="resetCalc()">+ New Price</button>
+  </div>
+
+</div>
+
+<script>
+  const ROI_MAP = { "10": 0.125, "12.5": 0.25, "25": 0.5, "50": 1.0 };
+  let selectedDepth = null;
+  let selectedRoi = null;
+  let selectedPrem = null;
+
+  const fmt = (n) => n.toLocaleString("en-US", { style: "currency", currency: "USD", minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+  function selectDepth(btn) {
+    document.querySelectorAll(".depth-btn").forEach(b => b.className = "depth-btn");
+    const color = btn.dataset.color;
+    btn.classList.add("sel-" + color);
+    selectedDepth = parseFloat(btn.dataset.depth);
+    document.getElementById("depthWarning").textContent =
+      selectedDepth === 5 ? "⚠ Aggressive — Higher Assignment Risk" : "";
+    checkReady();
+  }
+
+  function selectRoi(btn) {
+    document.querySelectorAll(".roi-btn").forEach(b => b.classList.remove("sel"));
+    btn.classList.add("sel");
+    selectedRoi = parseFloat(btn.dataset.roi);
+    selectedPrem = parseFloat(btn.dataset.prem);
+    checkReady();
+  }
+
+  function checkReady() {
+    document.getElementById("nextBtn").disabled = !(selectedDepth && selectedRoi);
+  }
+
+  function goToScreen2() {
+    document.getElementById("screen1").classList.add("hidden");
+    document.getElementById("screen2").classList.remove("hidden");
+    document.getElementById("pip1").classList.add("on");
+    document.getElementById("pip2").classList.add("on");
+    document.getElementById("chipDepth").textContent = "Depth: " + selectedDepth + "%";
+    document.getElementById("chipRoi").textContent = "ROI: " + selectedRoi + "%";
+    document.getElementById("chipMin").textContent = "Min: " + selectedPrem + "%";
+    document.getElementById("priceInput").value = "";
+    document.getElementById("results").classList.add("hidden");
+    document.getElementById("errMsg").textContent = "";
+  }
+
+  function goToScreen1() {
+    document.getElementById("screen2").classList.add("hidden");
+    document.getElementById("screen1").classList.remove("hidden");
+    document.getElementById("pip2").classList.remove("on");
+  }
+
+  function clearResult() {
+    document.getElementById("results").classList.add("hidden");
+    document.getElementById("errMsg").textContent = "";
+  }
+
+  function calculate() {
+    const raw = document.getElementById("priceInput").value;
+    const price = parseFloat(raw);
+    if (!price || isNaN(price) || price <= 0) {
+      document.getElementById("errMsg").textContent = "⚠ Enter a valid price";
+      return;
+    }
+    document.getElementById("errMsg").textContent = "";
+    const strike = Math.round(price * (1 - selectedDepth / 100));
+    const minShare = price * (selectedPrem / 100);
+    const minContract = minShare * 100;
+    document.getElementById("rPrice").textContent = fmt(price);
+    document.getElementById("rStrikeLbl").textContent = "Strike (−" + selectedDepth + "%)";
+    document.getElementById("rStrike").textContent = fmt(strike);
+    document.getElementById("rShare").textContent = fmt(minShare);
+    document.getElementById("rContract").textContent = fmt(minContract);
+    document.getElementById("results").classList.remove("hidden");
+  }
+
+  function resetCalc() {
+    document.getElementById("priceInput").value = "";
+    document.getElementById("results").classList.add("hidden");
+    document.getElementById("errMsg").textContent = "";
+  }
+</script>
+
+</body>
+</html>
